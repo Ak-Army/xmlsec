@@ -1,4 +1,4 @@
-package xmlsec_test
+package example_test
 
 import (
 	"crypto/rand"
@@ -56,7 +56,7 @@ func ExampleSignature_Sign() {
 	log.Printf("%s", doc.Dump(true))
 }
 
-func ExampleDSigCtx_Sign() {
+func ExampleDSigNs_sign() {
 	xmlsec.Init()
 	defer xmlsec.Shutdown()
 

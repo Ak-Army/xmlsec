@@ -1,4 +1,4 @@
-package xmlsec_test
+package example_test
 
 import (
 	"crypto/rand"
@@ -224,8 +224,8 @@ func TestSignature(t *testing.T) {
 		return
 	}
 
-	keyfile := filepath.Join("test", "key.pem")
-	certfile := filepath.Join("test", "cert.pem")
+	keyfile := filepath.Join("testdata", "key.pem")
+	certfile := filepath.Join("testdata", "cert.pem")
 	key, err := crypto.LoadKeyFromFile(keyfile, crypto.KeyDataFormatPem)
 	if !assert.NoError(t, err, "Load key from file succeeds") {
 		return
