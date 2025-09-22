@@ -6,7 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 
-	"github.com/lestrrat-go/xmlsec/clib"
+	"github.com/Ak-Army/xmlsec/clib"
 )
 
 func (k Key) Pointer() uintptr {
@@ -100,4 +100,3 @@ func (k Key) HasDsaKey() error {
 func (k Key) HasEcdsaKey() error {
 	return clib.XMLSecKeyHasEcdsaKey(k)
 }
-

@@ -1,7 +1,4 @@
-// +build !trusty
-
 /*
-
 Package clib holds all of the dirty C interaction for go-xmlsec.
 
 Although this package is visible to the outside world, the API in this
@@ -18,7 +15,6 @@ Please DO NOT rely on this API and expect that it will keep backcompat.
 When the need arises, it WILL be changed, and if you are not ready
 for it, your code WILL break in horrible horrible ways. You have been
 warned.
-
 */
 package clib
 
@@ -28,6 +24,7 @@ package clib
 #include <libxml/tree.h>
 #include <libxml/xmlerror.h>
 #include <libxml/xmlstring.h>
+#include <libxml/xmlIO.h>
 #include <libxslt/xslt.h>
 #include <libxslt/security.h>
 #include <xmlsec/xmlsec.h>
@@ -36,6 +33,7 @@ package clib
 #include <xmlsec/templates.h>
 #include <xmlsec/transforms.h>
 #include <xmlsec/crypto.h>
+#include <xmlsec/io.h>
 
 static inline xmlChar* to_xmlcharptr(const char *s) {
   return (xmlChar *) s;
@@ -74,7 +72,7 @@ go_xmlsec_init() {
     return -1;
   }
 
-	return 0;
+  return 0;
 }
 
 static void
@@ -130,16 +128,43 @@ go_xmlsec_key_has_rsa(xmlSecKey *key) {
 	return 1;
 }
 
+extern int
+xmlInputMatchCallbackFuncWrapper(const char *);
+
+extern void*
+xmlInputOpenCallbackFuncWrapper(const char *);
+
+extern int
+xmlInputReadCallbackFuncWrapper(void *, char *, int);
+
+extern int
+xmlInputCloseCallbackFuncWrapper(void *);
+
+static int
+go_xmlSecIORegisterCallbacks()
+{
+	return xmlSecIORegisterCallbacks(
+		xmlInputMatchCallbackFuncWrapper,
+		xmlInputOpenCallbackFuncWrapper,
+		xmlInputReadCallbackFuncWrapper,
+		xmlInputCloseCallbackFuncWrapper);
+}
+
 */
 import "C"
 import (
 	"errors"
+	"fmt"
+	"reflect"
 	"unsafe"
 
 	"github.com/lestrrat-go/libxml2/clib"
 	"github.com/lestrrat-go/libxml2/dom"
 	"github.com/lestrrat-go/libxml2/types"
 )
+
+// TODO: array
+var defaultXMLIOCallbacker XMLIOCallbacker
 
 type KeyDataFormat int
 
@@ -486,7 +511,11 @@ func XMLSecDSigCtxVerifyDocument(ctx PtrSource, doc types.Document) error {
 	return XMLSecDSigCtxVerifyRaw(ctxptr, nodeptr)
 }
 
-func XMLSecTmplSignatureCreateNsPref(doc types.Document, c14nMethod TransformID, signMethod TransformID, id string, prefix string) (types.Node, error) {
+func XMLSecTmplSignatureCreateNsPref(doc types.Document,
+	c14nMethod TransformID,
+	signMethod TransformID,
+	id string,
+	prefix string) (types.Node, error) {
 	docptr := (*C.xmlDoc)(unsafe.Pointer(doc.Pointer()))
 	if docptr == nil {
 		return nil, clib.ErrInvalidDocument
@@ -518,7 +547,9 @@ func XMLSecTmplSignatureCreateNsPref(doc types.Document, c14nMethod TransformID,
 	return dom.WrapNode(uintptr(unsafe.Pointer(ptr)))
 }
 
-func XMLSecTmplSignatureAddReference(signode types.Node, digestMethod TransformID, id, uri, nodeType string) (types.Node, error) {
+func XMLSecTmplSignatureAddReference(signode types.Node,
+	digestMethod TransformID,
+	id, uri, nodeType string) (types.Node, error) {
 	nptr, err := validNodePtr(signode)
 	if err != nil {
 		return nil, err
@@ -755,4 +786,75 @@ func XMLSecKeysMngrGetKey(mngr PtrSource, n PtrSource) (uintptr, error) {
 		return 0, errors.New("failed to get key")
 	}
 	return uintptr(unsafe.Pointer(keyptr)), nil
+}
+
+func XMLSecIORegisterCallbacks(callbacker XMLIOCallbacker) error {
+	if ret := C.go_xmlSecIORegisterCallbacks(); ret < 0 {
+		return fmt.Errorf("failed to register io callbacks, return value: %d", ret)
+	}
+	defaultXMLIOCallbacker = callbacker
+
+	return nil
+}
+
+func XMLSecIOCleanupCallbacks() {
+	C.xmlSecIOCleanupCallbacks()
+	defaultXMLIOCallbacker = nil
+}
+
+func XMLSecIORegisterDefaultCallbacks() error {
+	if ret := C.xmlSecIORegisterDefaultCallbacks(); ret < 0 {
+		return fmt.Errorf("failed to register default io callbacks, return value: %d", ret)
+	}
+	return nil
+}
+
+//export xmlInputMatchCallbackFunc
+func xmlInputMatchCallbackFunc(filename *C.char) C.int {
+	if defaultXMLIOCallbacker == nil {
+		return 0
+	}
+	return C.int(defaultXMLIOCallbacker.XMLInputMatchCallback(C.GoString(filename)))
+}
+
+//export xmlInputOpenCallbackFunc
+func xmlInputOpenCallbackFunc(filename *C.char) unsafe.Pointer {
+	if defaultXMLIOCallbacker == nil {
+		return unsafe.Pointer(uintptr(0))
+	}
+	return defaultXMLIOCallbacker.XMLInputOpenCallback(C.GoString(filename))
+}
+
+//export xmlInputReadCallbackFunc
+func xmlInputReadCallbackFunc(context unsafe.Pointer, buffer *C.char, buflen C.int) C.int {
+	if defaultXMLIOCallbacker == nil {
+		return 0
+	}
+	b, n := defaultXMLIOCallbacker.XMLInputReadCallback(context, int(buflen))
+	if len(b) == 0 {
+		return 0
+	}
+	if n < 0 {
+		return C.int(n)
+	}
+	/*for i := uint64(0); i < uint64(n); i++ {
+		*(*C.char)(unsafe.Pointer(uintptr(unsafe.Pointer(buffer)) + uintptr(i))) = C.char(b[i])
+	}*/
+	slice := &reflect.SliceHeader{
+		Data: uintptr(unsafe.Pointer(buffer)),
+		Len:  int(buflen),
+		Cap:  int(buflen),
+	}
+	rbuf := *(*[]byte)(unsafe.Pointer(slice))
+	copy(rbuf, b)
+
+	return C.int(n)
+}
+
+//export xmlInputCloseCallbackFunc
+func xmlInputCloseCallbackFunc(context unsafe.Pointer) C.int {
+	if defaultXMLIOCallbacker == nil {
+		return 0
+	}
+	return C.int(defaultXMLIOCallbacker.XMLInputCloseCallback(context))
 }

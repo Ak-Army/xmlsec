@@ -1,10 +1,11 @@
 package crypto
 
 import (
-	"github.com/lestrrat-go/xmlsec/clib"
+	"github.com/Ak-Army/xmlsec/clib"
 )
 
 type KeyDataType clib.KeyDataType
+
 const (
 	KeyDataTypeUnknown   = clib.KeyDataTypeUnknown
 	KeyDataTypeNone      = clib.KeyDataTypeNone
@@ -18,6 +19,7 @@ const (
 )
 
 type KeyDataFormat clib.KeyDataFormat
+
 const (
 	KeyDataFormatUnknown  = clib.KeyDataFormatUnknown
 	KeyDataFormatBinary   = clib.KeyDataFormatBinary
@@ -37,4 +39,3 @@ type Key struct {
 type KeyManager struct {
 	ptr uintptr
 }
-

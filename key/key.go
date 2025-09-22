@@ -12,7 +12,8 @@ import (
 	"github.com/lestrrat-go/libxml2/dom"
 	"github.com/lestrrat-go/libxml2/parser"
 	"github.com/lestrrat-go/libxml2/types"
-	"github.com/lestrrat-go/xmlsec"
+
+	"github.com/Ak-Army/xmlsec"
 )
 
 // NewRSA creates a new RSA key representation for the public key

@@ -1,10 +1,11 @@
 # xmlsec
 
 xmlsec is a Go binding for XML Security Library (https://www.aleksey.com/xmlsec/index.html)
+This repo is based on http://github.com/lestrrat-go/xmlsec.
 
 [![Build Status](https://travis-ci.org/lestrrat-go/xmlsec.svg?branch=master)](https://travis-ci.org/lestrrat-go/xmlsec)
 
-[![GoDoc](https://godoc.org/github.com/lestrrat-go/xmlsec?status.svg)](https://godoc.org/github.com/lestrrat-go/xmlsec)
+[![GoDoc](https://godoc.org/github.com/Ak-Army/xmlsec?status.svg)](https://godoc.org/github.com/Ak-Army/xmlsec)
 
 ## Status
 
@@ -25,9 +26,9 @@ import (
   "os"
 
   "github.com/lestrrat-go/libxml2/parser"
-  "github.com/lestrrat-go/xmlsec"
-  "github.com/lestrrat-go/xmlsec/crypto"
-  "github.com/lestrrat-go/xmlsec/dsig"
+  "github.com/Ak-Army/xmlsec"
+  "github.com/Ak-Army/xmlsec/crypto"
+  "github.com/Ak-Army/xmlsec/dsig"
 )
 
 func ExampleSignature_Sign() {
@@ -165,7 +166,7 @@ machine (OS X 10.10.5 + go 1.5.1), I get this:
 
 ```
 shoebill% go test .
-# github.com/lestrrat-go/xmlsec
+# github.com/Ak-Army/xmlsec
 In file included from <built-in>:326:
 <command line>:1:24: warning: missing terminating '"' character [-Winvalid-pp-token]
 ```
